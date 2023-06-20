@@ -6,6 +6,8 @@ import urllib.parse
 import requests
 import argparse
 
+from datetime import datetime
+
 API_ENDPOINT = "https://api.github.com"
 PER_PAGE = 100  # max 100 defaults 30
 DOCKER_ENDPOINT = "ghcr.io/"
@@ -81,6 +83,7 @@ def get_list_packages(owner, repo_name, owner_type, package_names):
             pkg for pkg in pkgs if pkg.get("repository")
             and pkg["repository"]["name"].lower() == repo_name
         ]
+    pkgs.sort(key=lambda pkg: datetime.fromisoformat(pkg["updated_at"]))
     return pkgs
 
 
@@ -127,7 +130,7 @@ def get_manifest(image):
 
 
 def delete_pkgs(owner, repo_name, owner_type, package_names, untagged_only,
-                except_untagged_multiplatform):
+                except_untagged_multiplatform, keep_latest):
     if untagged_only:
         all_packages = get_all_package_versions(
             owner=owner,
@@ -161,6 +164,8 @@ def delete_pkgs(owner, repo_name, owner_type, package_names, untagged_only,
             package_names=package_names,
             owner_type=owner_type,
         )
+    if keep_latest > 0:
+        packages = packages[:-keep_latest]
     status = [del_req(pkg["url"]).ok for pkg in packages]
     len_ok = len([ok for ok in status if ok])
     len_fail = len(status) - len_ok
@@ -227,6 +232,12 @@ def get_args():
         help=
         "Except untagged multiplatform packages from deletion (only for --untagged_only) needs docker installed",
     )
+    parser.add_argument(
+        "--keep_latest",
+        type=int,
+        default=0,
+        help="Amount of images to keep, ordered by most recently updated",
+    )
     args = parser.parse_args()
     if "/" in args.repository:
         repository_owner, repository = args.repository.split("/")
@@ -251,4 +262,5 @@ if __name__ == "__main__":
         package_names=args.package_names,
         untagged_only=args.untagged_only,
         owner_type=args.owner_type,
-        except_untagged_multiplatform=args.except_untagged_multiplatform)
+        except_untagged_multiplatform=args.except_untagged_multiplatform,
+        keep_latest=args.keep_latest)

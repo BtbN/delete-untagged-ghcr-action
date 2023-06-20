@@ -28,6 +28,9 @@ inputs:
   except_untagged_multiplatform:
     description: 'Except untagged multiplatform packages from deletion (only for --untagged_only)'
     default: false
+  keep_latest:
+    description: 'Keep this amount of images around, ordered by most recently updated.'
+    default: 0
   owner_type:
       description : "Owner type (org or user)"
       required: true
@@ -42,7 +45,7 @@ runs:
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.9'
+        python-version: '3.11'
     - name: Install Python dependencies
       shell: bash
       run: pip install -r ${{ github.action_path }}/requirements.txt
