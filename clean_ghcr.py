@@ -219,7 +219,7 @@ def delete_pkgs(owner, repo_name, owner_type, package_names, untagged_only,
             } & digests
         ]
         packages += old_signed
-    packages.sort(key=lambda pkg: datetime.fromisoformat(pkg["updated_at"]))
+    packages.sort(key=lambda pkg: (bool(pkg["metadata"]["container"]["tags"]), datetime.fromisoformat(pkg["updated_at"])))
     if keep_latest > 0:
         packages = packages[:-keep_latest]
     logger.debug(f"Packages to delete: {[p.get('url') for p in packages]}")
