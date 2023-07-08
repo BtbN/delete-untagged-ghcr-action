@@ -155,7 +155,7 @@ def delete_pkgs(owner, repo_name, owner_type, package_names, untagged_only,
         if (not pkg["metadata"]["container"]["tags"] or not untagged_only)
         and pkg["name"] not in deps_pkgs
     ]
-    packages.sort(key=lambda pkg: datetime.fromisoformat(pkg["updated_at"]))
+    packages.sort(key=lambda pkg: (bool(pkg["metadata"]["container"]["tags"]), datetime.fromisoformat(pkg["updated_at"])))
     if keep_latest > 0:
         packages = packages[:-keep_latest]
     status = [del_req(pkg["url"]).ok for pkg in packages]
