@@ -33,6 +33,10 @@ inputs:
     description: 'Include tagged signatures of untagged containers that will be deleted (only for --untagged_only)'
     default: false
     required: false
+  keep_latest:
+    description: 'Keep this amount of images around, ordered by most recently updated.'
+    default: 0
+    required: false
   owner_type:
     description : "Owner type (org or user)"
     required: true
