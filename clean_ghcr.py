@@ -179,54 +179,47 @@ def get_manifest(image):
 
 def delete_pkgs(owner, repo_name, owner_type, package_names, untagged_only,
                 except_untagged_multiplatform, with_sigs, dry_run, keep_latest):
-    if untagged_only:
-        all_packages = get_all_package_versions(
-            owner=owner,
-            repo_name=repo_name,
-            package_names=package_names,
-            owner_type=owner_type,
-        )
-        tagged_pkgs = {
-            pkg: [
-                pkg_ver for pkg_ver in all_packages[pkg]
-                if pkg_ver["metadata"]["container"]["tags"]
-            ]
-            for pkg in all_packages
-        }
-        if except_untagged_multiplatform:
-            deps_pkgs = get_deps_pkgs(owner, tagged_pkgs)
-        else:
-            deps_pkgs = []
-        all_packages = [
-            pkg_ver for pkg in all_packages for pkg_ver in all_packages[pkg]
+    all_packages = get_all_package_versions(
+        owner=owner,
+        repo_name=repo_name,
+        package_names=package_names,
+        owner_type=owner_type,
+    )
+    tagged_pkgs = {
+        pkg: [
+            pkg_ver for pkg_ver in all_packages[pkg]
+            if pkg_ver["metadata"]["container"]["tags"]
         ]
-        packages = [
-            pkg for pkg in all_packages
-            if not pkg["metadata"]["container"]["tags"]
-            and pkg["name"] not in deps_pkgs
-        ]
-        logger.debug(
-            f"Packages to delete (untagged): {[p['url'] for p in packages]}")
-        if with_sigs:
-            digests = {
-                sha[1]
-                for pkg in packages if len(sha := pkg["name"].split(":")) == 2
-            }
-            old_signed = [
-                pkg for pkg in all_packages if {
-                    sha[1].removesuffix(".sig")
-                    for tag in pkg["metadata"]["container"]["tags"]
-                    if tag and len(sha := tag.split("-")) == 2
-                } & digests
-            ]
-            packages += old_signed
+        for pkg in all_packages
+    }
+    if except_untagged_multiplatform:
+        deps_pkgs = get_deps_pkgs(owner, tagged_pkgs)
     else:
-        packages = get_list_packages(
-            owner=owner,
-            repo_name=repo_name,
-            package_names=package_names,
-            owner_type=owner_type,
-        )
+        deps_pkgs = []
+    all_packages = [
+        pkg_ver for pkg in all_packages for pkg_ver in all_packages[pkg]
+    ]
+    packages = [
+        pkg for pkg in all_packages
+        if (not pkg["metadata"]["container"]["tags"] or not untagged_only)
+        and pkg["name"] not in deps_pkgs
+    ]
+    logger.debug(
+        f"Packages to delete (untagged): {[p['url'] for p in packages]}")
+    if with_sigs:
+        digests = {
+            sha[1]
+            for pkg in packages if len(sha := pkg["name"].split(":")) == 2
+        }
+        old_signed = [
+            pkg for pkg in all_packages if {
+                sha[1].removesuffix(".sig")
+                for tag in pkg["metadata"]["container"]["tags"]
+                if tag and len(sha := tag.split("-")) == 2
+            } & digests
+        ]
+        packages += old_signed
+    packages.sort(key=lambda pkg: datetime.fromisoformat(pkg["updated_at"]))
     if keep_latest > 0:
         packages = packages[:-keep_latest]
     logger.debug(f"Packages to delete: {[p.get('url') for p in packages]}")
